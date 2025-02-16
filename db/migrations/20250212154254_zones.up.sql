@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS zones (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    location VARCHAR(255) NOT NULL,
+    total_spots INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT NULL
+)
