@@ -2,13 +2,21 @@ package spots
 
 import "database/sql"
 
-type SpotStore interface {
+type SpotRepositoryInterface interface {
 	GetAllSpot() ([]*Spot, error)
 	GetSpotByNumber(plate string) (*Spot, error)
 	GetSpotByID(id int) (*Spot, error)
 	CreateSpot(spot *CreateSpotPayload) error
 	UpdateSpot(spot *UpdateSpotPayload) error
 	DeleteSpot(id int) error
+}
+
+type SpotServiceInterface interface {
+	GetAllSpot() ([]*Spot, error)
+	GetSpotByID(id int) (*Spot, error)
+	CreateSpot(spot *CreateSpotPayload) (string, error)
+	UpdateSpot(spot *UpdateSpotPayload) (string, error)
+	DeleteSpot(id int) (string, error)
 }
 
 type Spot struct {

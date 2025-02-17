@@ -2,13 +2,21 @@ package notifications
 
 import "database/sql"
 
-type NotificationStore interface {
+type NotificationRepositoryInterface interface {
 	GetAllNotification() ([]*Notification, error)
 	GetNotificationByMessage(message string) (*Notification, error)
 	GetNotificationByID(id int) (*Notification, error)
 	CreateNotification(notification *CreateNotificationPayload) error
 	UpdateNotification(notification *UpdateNotificationPayload) error
 	DeleteNotification(id int) error
+}
+
+type NotificationServiceInterface interface {
+	GetAllNotification() ([]*Notification, error)
+	GetNotificationByID(id int) (*Notification, error)
+	CreateNotification(payload *CreateNotificationPayload) (string, error)
+	UpdateNotification(payload *UpdateNotificationPayload) (string, error)
+	DeleteNotification(id int) (string, error)
 }
 
 type Notification struct {

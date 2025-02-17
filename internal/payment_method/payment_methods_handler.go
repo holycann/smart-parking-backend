@@ -11,52 +11,42 @@ import (
 	utils "github.com/holycann/smart-parking-backend/pkg"
 )
 
-type Handler struct {
-	store PaymentMethodStore
+type PaymentMethodHandler struct {
+	service PaymentMethodServiceInterface
 }
 
-func NewHandler(store PaymentMethodStore) *Handler {
-	return &Handler{store: store}
+func NewHandler(service PaymentMethodServiceInterface) *PaymentMethodHandler {
+	return &PaymentMethodHandler{service: service}
 }
 
-func (h *Handler) PaymentMethodRoutes(router *mux.Router) {
-	router.HandleFunc("/payment_method", h.HandleGet).Methods("GET")
-	router.HandleFunc("/payment_method/{id}", h.HandleGetByID).Methods("GET")
-	router.HandleFunc("/payment_method", h.HandleCreate).Methods("POST")
-	router.HandleFunc("/payment_method/{id}", h.HandleUpdate).Methods("PUT")
-	router.HandleFunc("/payment_method/{id}", h.HandleDelete).Methods("DELETE")
-}
-
-func (h *Handler) HandleGet(w http.ResponseWriter, r *http.Request) {
-	payments, err := h.store.GetAllPaymentMethod()
+func (h *PaymentMethodHandler) HandleGetAllPaymentMethod(w http.ResponseWriter, r *http.Request) {
+	payments, err := h.service.GetAllPaymentMethod()
 	if err != nil {
-		fmt.Printf("error getting all payment_method: %v\n", err)
-		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("Failed to retrieve payment_methods"))
+		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	utils.WriteJSON(w, http.StatusOK, payments)
 }
 
-func (h *Handler) HandleGetByID(w http.ResponseWriter, r *http.Request) {
+func (h *PaymentMethodHandler) HandleGetPaymentMethodByID(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
-	if err != nil || id <= 0 {
+	if err != nil {
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("Invalid ID parameter"))
 		return
 	}
 
-	payment, err := h.store.GetPaymentMethodByID(id)
-	if err != nil || id <= 0 {
-		fmt.Printf("error getting payment_method by id: %v\n", err)
-		utils.WriteError(w, http.StatusNotFound, fmt.Errorf("Payment_method with ID %d not found", id))
+	payment, err := h.service.GetPaymentMethodByID(id)
+	if err != nil {
+		utils.WriteError(w, http.StatusNotFound, err)
 		return
 	}
 
 	utils.WriteJSON(w, http.StatusOK, payment)
 }
 
-func (h *Handler) HandleCreate(w http.ResponseWriter, r *http.Request) {
+func (h *PaymentMethodHandler) HandleCreatePaymentMethod(w http.ResponseWriter, r *http.Request) {
 	var payload CreatePaymentMethodPayload
 	if err := utils.ParseJSON(r, &payload); err != nil {
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("error parsing json: %v\n", err))
@@ -68,27 +58,16 @@ func (h *Handler) HandleCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := h.store.GetPaymentMethodByMethodName(payload.MethodName)
-	if err == nil {
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("Payment Method With Method Name %s already exists", payload.MethodName))
-		return
-	}
-
-	err = h.store.CreatePaymentMethod(&CreatePaymentMethodPayload{
-		MethodName: payload.MethodName,
-		Details:    payload.Details,
-		Status:     payload.Status,
-	})
+	message, err := h.service.CreatePaymentMethod(&payload)
 	if err != nil {
-		fmt.Printf("error create payment_method: %v\n", err)
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusCreated, fmt.Sprintf("Create payment_method %s successfully", payload.MethodName))
+	utils.WriteJSON(w, http.StatusCreated, message)
 }
 
-func (h *Handler) HandleUpdate(w http.ResponseWriter, r *http.Request) {
+func (h *PaymentMethodHandler) HandleUpdatePaymentMethod(w http.ResponseWriter, r *http.Request) {
 	var payload UpdatePaymentMethodPayload
 	if err := utils.ParseJSON(r, &payload); err != nil {
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("error parsing json: %v", err))
@@ -110,10 +89,9 @@ func (h *Handler) HandleUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pm, err := h.store.GetPaymentMethodByID(payload.ID)
+	pm, err := h.service.GetPaymentMethodByID(payload.ID)
 	if err != nil {
-		fmt.Printf("error get payment_method by id: %v\n", err)
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("payment_method id %d not found"))
+		utils.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 
@@ -127,36 +105,28 @@ func (h *Handler) HandleUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.store.UpdatePaymentMethod(&UpdatePaymentMethodPayload{
-		ID:         payload.ID,
-		MethodName: payload.MethodName,
-		Details:    payload.Details,
-		Status:     payload.Status,
-	})
+	message, err := h.service.UpdatePaymentMethod(&payload)
 	if err != nil {
-		fmt.Printf("error update payment: %v\n", err)
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusOK, fmt.Sprintf("Update payment method %v successfully", pm.MethodName))
+	utils.WriteJSON(w, http.StatusOK, message)
 }
 
-func (h *Handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
+func (h *PaymentMethodHandler) HandleDeletePaymentMethod(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		fmt.Printf("error get payment_method by id: %v\n", err)
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("payment_method id %d not found", id))
+		utils.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 
-	err = h.store.DeletePaymentMethod(id)
+	message, err := h.service.DeletePaymentMethod(id)
 	if err != nil {
-		fmt.Printf("error delete payment_method: %v\n", err)
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusOK, fmt.Sprintf("Delete payment_method successfully"))
+	utils.WriteJSON(w, http.StatusOK, message)
 }

@@ -4,13 +4,21 @@ import (
 	"database/sql"
 )
 
-type PaymentMethodStore interface {
+type PaymentMethodRepositoryInterface interface {
 	GetAllPaymentMethod() ([]*PaymentMethod, error)
 	GetPaymentMethodByMethodName(MethodName string) (*PaymentMethod, error)
 	GetPaymentMethodByID(id int) (*PaymentMethod, error)
 	CreatePaymentMethod(payment_method *CreatePaymentMethodPayload) error
 	UpdatePaymentMethod(payment_method *UpdatePaymentMethodPayload) error
 	DeletePaymentMethod(id int) error
+}
+
+type PaymentMethodServiceInterface interface {
+	GetAllPaymentMethod() ([]*PaymentMethod, error)
+	GetPaymentMethodByID(id int) (*PaymentMethod, error)
+	CreatePaymentMethod(payment_method *CreatePaymentMethodPayload) (string, error)
+	UpdatePaymentMethod(payment_method *UpdatePaymentMethodPayload) (string, error)
+	DeletePaymentMethod(id int) (string, error)
 }
 
 type PaymentMethod struct {

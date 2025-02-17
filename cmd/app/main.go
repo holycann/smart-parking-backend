@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/holycann/smart-parking-backend/cmd/app/api"
+	"github.com/holycann/smart-parking-backend/cmd/api"
 	"github.com/holycann/smart-parking-backend/config"
 	"github.com/holycann/smart-parking-backend/db"
 )

@@ -5,12 +5,12 @@ import (
 	"fmt"
 )
 
-type Store struct {
+type SpotRepository struct {
 	db *sql.DB
 }
 
-func NewStore(db *sql.DB) *Store {
-	return &Store{
+func NewRepository(db *sql.DB) *SpotRepository {
+	return &SpotRepository{
 		db: db,
 	}
 }
@@ -33,7 +33,7 @@ func scanRowIntoSpot(row *sql.Rows) (*Spot, error) {
 	return spot, nil
 }
 
-func (s *Store) GetAllSpot() (spot []*Spot, err error) {
+func (s *SpotRepository) GetAllSpot() (spot []*Spot, err error) {
 	rows, err := s.db.Query("SELECT * FROM spots")
 	if err != nil {
 		return nil, err
@@ -50,7 +50,7 @@ func (s *Store) GetAllSpot() (spot []*Spot, err error) {
 	return spot, nil
 }
 
-func (s *Store) GetSpotByNumber(plate string) (*Spot, error) {
+func (s *SpotRepository) GetSpotByNumber(plate string) (*Spot, error) {
 	rows, err := s.db.Query("SELECT * FROM spots WHERE spot_number = $1", plate)
 	if err != nil {
 		return nil, err
@@ -71,7 +71,7 @@ func (s *Store) GetSpotByNumber(plate string) (*Spot, error) {
 	return sp, nil
 }
 
-func (s *Store) GetSpotByID(id int) (*Spot, error) {
+func (s *SpotRepository) GetSpotByID(id int) (*Spot, error) {
 	rows, err := s.db.Query("SELECT * FROM spots WHERE id = $1", id)
 	if err != nil {
 		return nil, err
@@ -92,7 +92,7 @@ func (s *Store) GetSpotByID(id int) (*Spot, error) {
 	return sp, nil
 }
 
-func (s *Store) CreateSpot(spot *CreateSpotPayload) error {
+func (s *SpotRepository) CreateSpot(spot *CreateSpotPayload) error {
 	_, err := s.db.Exec("INSERT INTO spots (zone_id, spot_number, status) VALUES ($1, $2, $3)", spot.ZoneID, spot.SpotNumber, spot.Status)
 	if err != nil {
 		return err
@@ -101,7 +101,7 @@ func (s *Store) CreateSpot(spot *CreateSpotPayload) error {
 	return nil
 }
 
-func (s *Store) UpdateSpot(spot *UpdateSpotPayload) error {
+func (s *SpotRepository) UpdateSpot(spot *UpdateSpotPayload) error {
 	_, err := s.db.Exec("UPDATE spots SET zone_id = $1, spot_number = $2, status = $3 WHERE id = $4", spot.ZoneID, spot.SpotNumber, spot.Status, spot.ID)
 	if err != nil {
 		return err
@@ -110,7 +110,7 @@ func (s *Store) UpdateSpot(spot *UpdateSpotPayload) error {
 	return nil
 }
 
-func (s *Store) DeleteSpot(id int) error {
+func (s *SpotRepository) DeleteSpot(id int) error {
 	_, err := s.db.Exec("DELETE FROM spots WHERE id = $1", id)
 	if err != nil {
 		return err

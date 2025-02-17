@@ -12,52 +12,42 @@ import (
 	utils "github.com/holycann/smart-parking-backend/pkg"
 )
 
-type Handler struct {
-	store ReservationStore
+type ReservationHandler struct {
+	service ReservationServiceInterface
 }
 
-func NewHandler(store ReservationStore) *Handler {
-	return &Handler{store: store}
+func NewHandler(service ReservationServiceInterface) *ReservationHandler {
+	return &ReservationHandler{service: service}
 }
 
-func (h *Handler) ReservationRoutes(router *mux.Router) {
-	router.HandleFunc("/reservation", h.HandleGet).Methods("GET")
-	router.HandleFunc("/reservation/{id}", h.HandleGetByID).Methods("GET")
-	router.HandleFunc("/reservation", h.HandleCreate).Methods("POST")
-	router.HandleFunc("/reservation/{id}", h.HandleUpdate).Methods("PUT")
-	router.HandleFunc("/reservation/{id}", h.HandleDelete).Methods("DELETE")
-}
-
-func (h *Handler) HandleGet(w http.ResponseWriter, r *http.Request) {
-	reservations, err := h.store.GetAllReservation()
+func (h *ReservationHandler) HandleGetAllReservation(w http.ResponseWriter, r *http.Request) {
+	reservations, err := h.service.GetAllReservation()
 	if err != nil {
-		fmt.Printf("error getting all reservation: %v\n", err)
-		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("Failed to retrieve reservations"))
+		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	utils.WriteJSON(w, http.StatusOK, reservations)
 }
 
-func (h *Handler) HandleGetByID(w http.ResponseWriter, r *http.Request) {
+func (h *ReservationHandler) HandleGetReservationByID(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
-	if err != nil || id <= 0 {
+	if err != nil {
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("Invalid ID parameter"))
 		return
 	}
 
-	reservation, err := h.store.GetReservationByID(id)
-	if err != nil || id <= 0 {
-		fmt.Printf("error getting reservation by id: %v\n", err)
-		utils.WriteError(w, http.StatusNotFound, fmt.Errorf("Reservation with ID %d not found", id))
+	reservation, err := h.service.GetReservationByID(id)
+	if err != nil {
+		utils.WriteError(w, http.StatusNotFound, err)
 		return
 	}
 
 	utils.WriteJSON(w, http.StatusOK, reservation)
 }
 
-func (h *Handler) HandleCreate(w http.ResponseWriter, r *http.Request) {
+func (h *ReservationHandler) HandleCreateReservation(w http.ResponseWriter, r *http.Request) {
 	var payload CreateReservationPayload
 	if err := utils.ParseJSON(r, &payload); err != nil {
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("error parsing json: %v\n", err))
@@ -69,30 +59,16 @@ func (h *Handler) HandleCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := h.store.GetReservationByStartTime(payload.StartTime)
-	if err == nil {
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("Reservation Start Time %s already exists", payload.StartTime))
-		return
-	}
-
-	err = h.store.CreateReservation(&CreateReservationPayload{
-		UserID:    payload.UserID,
-		SpotID:    payload.SpotID,
-		VehicleID: payload.VehicleID,
-		StartTime: payload.StartTime,
-		EndTime:   payload.EndTime,
-		Status:    payload.Status,
-	})
+	message, err := h.service.CreateReservation(&payload)
 	if err != nil {
-		fmt.Printf("error create reservation: %v\n", err)
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusCreated, fmt.Sprintf("Create reservation %s successfully", payload.StartTime))
+	utils.WriteJSON(w, http.StatusCreated, message)
 }
 
-func (h *Handler) HandleUpdate(w http.ResponseWriter, r *http.Request) {
+func (h *ReservationHandler) HandleUpdateReservation(w http.ResponseWriter, r *http.Request) {
 	var payload UpdateReservationPayload
 	if err := utils.ParseJSON(r, &payload); err != nil {
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("error parsing json: %v", err))
@@ -101,7 +77,7 @@ func (h *Handler) HandleUpdate(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
-	if err != nil || id <= 0 {
+	if err != nil {
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("Invalid ID parameter"))
 		return
 	}
@@ -114,10 +90,9 @@ func (h *Handler) HandleUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	re, err := h.store.GetReservationByID(payload.ID)
+	re, err := h.service.GetReservationByID(payload.ID)
 	if err != nil {
-		fmt.Printf("error get reservation by id: %v\n", err)
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("reservation id %d not found"))
+		utils.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
 
@@ -131,25 +106,16 @@ func (h *Handler) HandleUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.store.UpdateReservation(&UpdateReservationPayload{
-		ID:        payload.ID,
-		UserID:    payload.UserID,
-		SpotID:    payload.SpotID,
-		VehicleID: payload.VehicleID,
-		StartTime: payload.StartTime,
-		EndTime:   payload.EndTime,
-		Status:    payload.Status,
-	})
+	message, err := h.service.UpdateReservation(&payload)
 	if err != nil {
-		fmt.Printf("error update reservation: %v\n", err)
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusOK, fmt.Sprintf("Update reservation %v successfully", re.StartTime))
+	utils.WriteJSON(w, http.StatusOK, message)
 }
 
-func (h *Handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
+func (h *ReservationHandler) HandleDeleteReservation(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
@@ -158,12 +124,11 @@ func (h *Handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.store.DeleteReservation(id)
+	message, err := h.service.DeleteReservation(id)
 	if err != nil {
-		fmt.Printf("error delete reservation: %v\n", err)
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusOK, fmt.Sprintf("Delete reservation successfully"))
+	utils.WriteJSON(w, http.StatusOK, message)
 }

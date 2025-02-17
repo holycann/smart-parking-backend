@@ -11,34 +11,25 @@ import (
 	utils "github.com/holycann/smart-parking-backend/pkg"
 )
 
-type Handler struct {
-	store VehicleStore
+type VehicleHandler struct {
+	service VehicleServiceInterface
 }
 
-func NewHandler(store VehicleStore) *Handler {
-	return &Handler{store: store}
+func NewHandler(service VehicleServiceInterface) *VehicleHandler {
+	return &VehicleHandler{service: service}
 }
 
-func (h *Handler) VehicleRoutes(router *mux.Router) {
-	router.HandleFunc("/vehicle", h.HandleGet).Methods("GET")
-	router.HandleFunc("/vehicle/{id}", h.HandleGetByID).Methods("GET")
-	router.HandleFunc("/vehicle", h.HandleCreate).Methods("POST")
-	router.HandleFunc("/vehicle/{id}", h.HandleUpdate).Methods("PUT")
-	router.HandleFunc("/vehicle/{id}", h.HandleDelete).Methods("DELETE")
-}
-
-func (h *Handler) HandleGet(w http.ResponseWriter, r *http.Request) {
-	vehicles, err := h.store.GetAllVehicle()
+func (h *VehicleHandler) HandleGetAllVehicle(w http.ResponseWriter, r *http.Request) {
+	vehicles, err := h.service.GetAllVehicle()
 	if err != nil {
-		fmt.Printf("error getting all vehicle: %v\n", err)
-		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("Failed to retrieve vehicles"))
+		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	utils.WriteJSON(w, http.StatusOK, vehicles)
 }
 
-func (h *Handler) HandleGetByID(w http.ResponseWriter, r *http.Request) {
+func (h *VehicleHandler) HandleGetVehicleByID(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil || id <= 0 {
@@ -46,17 +37,16 @@ func (h *Handler) HandleGetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	vehicle, err := h.store.GetVehicleByID(id)
+	vehicle, err := h.service.GetVehicleByID(id)
 	if err != nil || id <= 0 {
-		fmt.Printf("error getting vehicle by id: %v\n", err)
-		utils.WriteError(w, http.StatusNotFound, fmt.Errorf("Vehicle with ID %d not found", id))
+		utils.WriteError(w, http.StatusNotFound, err)
 		return
 	}
 
 	utils.WriteJSON(w, http.StatusOK, vehicle)
 }
 
-func (h *Handler) HandleCreate(w http.ResponseWriter, r *http.Request) {
+func (h *VehicleHandler) HandleCreateVehicle(w http.ResponseWriter, r *http.Request) {
 	var payload CreateVehiclePayload
 	if err := utils.ParseJSON(r, &payload); err != nil {
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("error parsing json: %v\n", err))
@@ -68,30 +58,16 @@ func (h *Handler) HandleCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := h.store.GetVehicleByPlate(payload.PlateNumber)
-	if err == nil {
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("Vehicle Plate %s already exists", payload.PlateNumber))
-		return
-	}
-
-	err = h.store.CreateVehicle(&CreateVehiclePayload{
-		UserID:      payload.UserID,
-		PlateNumber: payload.PlateNumber,
-		Type:        payload.Type,
-		Brand:       payload.Brand,
-		Model:       payload.Model,
-		Color:       payload.Color,
-	})
+	message, err := h.service.CreateVehicle(&payload)
 	if err != nil {
-		fmt.Printf("error create vehicle: %v\n", err)
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusCreated, fmt.Sprintf("Create vehicle %s successfully", payload.PlateNumber))
+	utils.WriteJSON(w, http.StatusCreated, message)
 }
 
-func (h *Handler) HandleUpdate(w http.ResponseWriter, r *http.Request) {
+func (h *VehicleHandler) HandleUpdateVehicle(w http.ResponseWriter, r *http.Request) {
 	var payload UpdateVehiclePayload
 	if err := utils.ParseJSON(r, &payload); err != nil {
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("error parsing json: %v", err))
@@ -113,42 +89,16 @@ func (h *Handler) HandleUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	v, err := h.store.GetVehicleByID(payload.ID)
+	message, err := h.service.UpdateVehicle(&payload)
 	if err != nil {
-		fmt.Printf("error get vehicle by id: %v\n", err)
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("vehicle id %d not found"))
-		return
-	}
-
-	if v == nil {
-		utils.WriteError(w, http.StatusNotFound, fmt.Errorf("Vehicle with ID %d does not exist", payload.ID))
-		return
-	}
-
-	if payload.UserID == 0 && payload.PlateNumber == "" {
-		utils.WriteError(w, http.StatusNotFound, fmt.Errorf("Vehicle User And Plat Number Cannot Be Empty!"))
-		return
-	}
-
-	err = h.store.UpdateVehicle(&UpdateVehiclePayload{
-		ID:          payload.ID,
-		UserID:      payload.UserID,
-		PlateNumber: payload.PlateNumber,
-		Type:        payload.Type,
-		Brand:       payload.Brand,
-		Model:       payload.Model,
-		Color:       payload.Color,
-	})
-	if err != nil {
-		fmt.Printf("error update vehicle: %v\n", err)
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusOK, fmt.Sprintf("Update vehicle %s successfully", v.PlateNumber))
+	utils.WriteJSON(w, http.StatusOK, message)
 }
 
-func (h *Handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
+func (h *VehicleHandler) HandleDeleteVehicle(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
@@ -157,12 +107,11 @@ func (h *Handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.store.DeleteVehicle(id)
+	message, err := h.service.DeleteVehicle(id)
 	if err != nil {
-		fmt.Printf("error delete vehicle: %v\n", err)
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusOK, fmt.Sprintf("Delete vehicle successfully"))
+	utils.WriteJSON(w, http.StatusOK, message)
 }

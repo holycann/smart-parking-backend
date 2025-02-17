@@ -2,13 +2,21 @@ package vehicles
 
 import "database/sql"
 
-type VehicleStore interface {
+type VehicleRepositoryInterface interface {
 	GetAllVehicle() ([]*Vehicle, error)
 	GetVehicleByPlate(plate string) (*Vehicle, error)
 	GetVehicleByID(id int) (*Vehicle, error)
 	CreateVehicle(vehicle *CreateVehiclePayload) error
 	UpdateVehicle(vehicle *UpdateVehiclePayload) error
 	DeleteVehicle(id int) error
+}
+
+type VehicleServiceInterface interface {
+	GetAllVehicle() ([]*Vehicle, error)
+	GetVehicleByID(id int) (*Vehicle, error)
+	CreateVehicle(vehicle *CreateVehiclePayload) (string, error)
+	UpdateVehicle(vehicle *UpdateVehiclePayload) (string, error)
+	DeleteVehicle(id int) (string, error)
 }
 
 type Vehicle struct {

@@ -11,34 +11,25 @@ import (
 	utils "github.com/holycann/smart-parking-backend/pkg"
 )
 
-type Handler struct {
-	store NotificationStore
+type NotificationHandler struct {
+	service NotificationServiceInterface
 }
 
-func NewHandler(store NotificationStore) *Handler {
-	return &Handler{store: store}
+func NewHandler(service NotificationServiceInterface) *NotificationHandler {
+	return &NotificationHandler{service: service}
 }
 
-func (h *Handler) NotificationRoutes(router *mux.Router) {
-	router.HandleFunc("/notification", h.HandleGet).Methods("GET")
-	router.HandleFunc("/notification/{id}", h.HandleGetByID).Methods("GET")
-	router.HandleFunc("/notification", h.HandleCreate).Methods("POST")
-	router.HandleFunc("/notification/{id}", h.HandleUpdate).Methods("PUT")
-	router.HandleFunc("/notification/{id}", h.HandleDelete).Methods("DELETE")
-}
-
-func (h *Handler) HandleGet(w http.ResponseWriter, r *http.Request) {
-	notification, err := h.store.GetAllNotification()
+func (h *NotificationHandler) HandleGetAllNotifications(w http.ResponseWriter, r *http.Request) {
+	notification, err := h.service.GetAllNotification()
 	if err != nil {
-		fmt.Printf("error getting all notification: %v\n", err)
-		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("Failed to retrieve notifications"))
+		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	utils.WriteJSON(w, http.StatusOK, notification)
 }
 
-func (h *Handler) HandleGetByID(w http.ResponseWriter, r *http.Request) {
+func (h *NotificationHandler) HandleGetByID(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil || id <= 0 {
@@ -46,7 +37,7 @@ func (h *Handler) HandleGetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	notification, err := h.store.GetNotificationByID(id)
+	notification, err := h.service.GetNotificationByID(id)
 	if err != nil || id <= 0 {
 		fmt.Printf("error getting notification by id: %v\n", err)
 		utils.WriteError(w, http.StatusNotFound, fmt.Errorf("Notification with ID %d not found", id))
@@ -56,7 +47,7 @@ func (h *Handler) HandleGetByID(w http.ResponseWriter, r *http.Request) {
 	utils.WriteJSON(w, http.StatusOK, notification)
 }
 
-func (h *Handler) HandleCreate(w http.ResponseWriter, r *http.Request) {
+func (h *NotificationHandler) HandleCreateNotification(w http.ResponseWriter, r *http.Request) {
 	var payload CreateNotificationPayload
 	if err := utils.ParseJSON(r, &payload); err != nil {
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("error parsing json: %v\n", err))
@@ -68,27 +59,16 @@ func (h *Handler) HandleCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := h.store.GetNotificationByMessage(payload.Message)
-	if err == nil {
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("Notification Message %s already exists", payload.Message))
-		return
-	}
-
-	err = h.store.CreateNotification(&CreateNotificationPayload{
-		UserID:  payload.UserID,
-		Message: payload.Message,
-		Status:  payload.Status,
-	})
+	message, err := h.service.CreateNotification(&payload)
 	if err != nil {
-		fmt.Printf("error create notification: %v\n", err)
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusCreated, fmt.Sprintf("Create notification %s successfully", payload.Message))
+	utils.WriteJSON(w, http.StatusCreated, message)
 }
 
-func (h *Handler) HandleUpdate(w http.ResponseWriter, r *http.Request) {
+func (h *NotificationHandler) HandleUpdateNotification(w http.ResponseWriter, r *http.Request) {
 	var payload UpdateNotificationPayload
 	if err := utils.ParseJSON(r, &payload); err != nil {
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("error parsing json: %v", err))
@@ -110,7 +90,7 @@ func (h *Handler) HandleUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	n, err := h.store.GetNotificationByID(payload.ID)
+	n, err := h.service.GetNotificationByID(payload.ID)
 	if err != nil {
 		fmt.Printf("error get notification by id: %v\n", err)
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("notification id %d not found"))
@@ -127,22 +107,17 @@ func (h *Handler) HandleUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.store.UpdateNotification(&UpdateNotificationPayload{
-		ID:      payload.ID,
-		UserID:  payload.UserID,
-		Message: payload.Message,
-		Status:  payload.Status,
-	})
+	message, err := h.service.UpdateNotification(&payload)
 	if err != nil {
 		fmt.Printf("error update notification: %v\n", err)
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusOK, fmt.Sprintf("Update notification %s successfully", n.Message))
+	utils.WriteJSON(w, http.StatusOK, message)
 }
 
-func (h *Handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
+func (h *NotificationHandler) HandleDeleteNotification(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
@@ -151,12 +126,12 @@ func (h *Handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.store.DeleteNotification(id)
+	message, err := h.service.DeleteNotification(id)
 	if err != nil {
 		fmt.Printf("error delete notification: %v\n", err)
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusOK, fmt.Sprintf("Delete notification successfully"))
+	utils.WriteJSON(w, http.StatusOK, message)
 }

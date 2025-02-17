@@ -5,12 +5,12 @@ import (
 	"fmt"
 )
 
-type Store struct {
+type ZoneRepository struct {
 	db *sql.DB
 }
 
-func NewStore(db *sql.DB) *Store {
-	return &Store{
+func NewRepository(db *sql.DB) *ZoneRepository {
+	return &ZoneRepository{
 		db: db,
 	}
 }
@@ -32,7 +32,7 @@ func scanRowIntoZone(row *sql.Rows) (*Zone, error) {
 	return zone, nil
 }
 
-func (s *Store) GetAllZone() (zones []*Zone, err error) {
+func (s *ZoneRepository) GetAllZone() (zones []*Zone, err error) {
 	rows, err := s.db.Query("SELECT * FROM zones")
 	if err != nil {
 		return nil, err
@@ -49,7 +49,7 @@ func (s *Store) GetAllZone() (zones []*Zone, err error) {
 	return zones, nil
 }
 
-func (s *Store) GetZoneByName(name string) (*Zone, error) {
+func (s *ZoneRepository) GetZoneByName(name string) (*Zone, error) {
 	rows, err := s.db.Query("SELECT * FROM zones WHERE name = $1", name)
 	if err != nil {
 		return nil, err
@@ -70,7 +70,7 @@ func (s *Store) GetZoneByName(name string) (*Zone, error) {
 	return z, nil
 }
 
-func (s *Store) GetZoneByID(id int) (*Zone, error) {
+func (s *ZoneRepository) GetZoneByID(id int) (*Zone, error) {
 	rows, err := s.db.Query("SELECT * FROM zones WHERE id = $1", id)
 	if err != nil {
 		return nil, err
@@ -91,7 +91,7 @@ func (s *Store) GetZoneByID(id int) (*Zone, error) {
 	return z, nil
 }
 
-func (s *Store) CreateZone(zone *CreateZonePayload) error {
+func (s *ZoneRepository) CreateZone(zone *CreateZonePayload) error {
 	_, err := s.db.Exec("INSERT INTO zones (name, location, total_spots) VALUES ($1, $2, $3)", zone.Name, zone.Location, zone.TotalSpots)
 	if err != nil {
 		return err
@@ -100,7 +100,7 @@ func (s *Store) CreateZone(zone *CreateZonePayload) error {
 	return nil
 }
 
-func (s *Store) UpdateZone(zone *UpdateZonePayload) error {
+func (s *ZoneRepository) UpdateZone(zone *UpdateZonePayload) error {
 	_, err := s.db.Exec("UPDATE zones SET name = $1, location = $2, total_spots = $3 WHERE id = $4", zone.Name, zone.Location, zone.TotalSpots, zone.ID)
 	if err != nil {
 		return err
@@ -109,7 +109,7 @@ func (s *Store) UpdateZone(zone *UpdateZonePayload) error {
 	return nil
 }
 
-func (s *Store) DeleteZone(id int) error {
+func (s *ZoneRepository) DeleteZone(id int) error {
 	_, err := s.db.Exec("DELETE FROM zones WHERE id = $1", id)
 	if err != nil {
 		return err

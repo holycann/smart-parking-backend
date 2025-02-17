@@ -2,13 +2,21 @@ package transactions
 
 import "database/sql"
 
-type TransactionStore interface {
+type TransactionRepositoryInterface interface {
 	GetAllTransaction() ([]*Transaction, error)
 	GetTransactionByReservationID(ReservationID int) (*Transaction, error)
 	GetTransactionByID(id int) (*Transaction, error)
 	CreateTransaction(transaction *CreateTransactionPayload) error
 	UpdateTransaction(transaction *UpdateTransactionPayload) error
 	DeleteTransaction(id int) error
+}
+
+type TransactionServiceInterface interface {
+	GetAllTransaction() ([]*Transaction, error)
+	GetTransactionByID(id int) (*Transaction, error)
+	CreateTransaction(transaction *CreateTransactionPayload) (string, error)
+	UpdateTransaction(transaction *UpdateTransactionPayload) (string, error)
+	DeleteTransaction(id int) (string, error)
 }
 
 type Transaction struct {

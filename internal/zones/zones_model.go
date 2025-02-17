@@ -2,13 +2,21 @@ package zones
 
 import "database/sql"
 
-type ZoneStore interface {
+type ZoneRepositoryInterface interface {
 	GetAllZone() ([]*Zone, error)
 	GetZoneByName(name string) (*Zone, error)
 	GetZoneByID(id int) (*Zone, error)
 	CreateZone(zone *CreateZonePayload) error
 	UpdateZone(zone *UpdateZonePayload) error
 	DeleteZone(id int) error
+}
+
+type ZoneServiceInterface interface {
+	GetAllZone() ([]*Zone, error)
+	GetZoneByID(id int) (*Zone, error)
+	CreateZone(zone *CreateZonePayload) (string, error)
+	UpdateZone(zone *UpdateZonePayload) (string, error)
+	DeleteZone(id int) (string, error)
 }
 
 type Zone struct {

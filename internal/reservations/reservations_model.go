@@ -4,13 +4,21 @@ import (
 	"database/sql"
 )
 
-type ReservationStore interface {
+type ReservationRepositoryInterface interface {
 	GetAllReservation() ([]*Reservation, error)
 	GetReservationByStartTime(StartTime int64) (*Reservation, error)
 	GetReservationByID(id int) (*Reservation, error)
 	CreateReservation(reservation *CreateReservationPayload) error
 	UpdateReservation(reservation *UpdateReservationPayload) error
 	DeleteReservation(id int) error
+}
+
+type ReservationServiceInterface interface {
+	GetAllReservation() ([]*Reservation, error)
+	GetReservationByID(id int) (*Reservation, error)
+	CreateReservation(reservation *CreateReservationPayload) (string, error)
+	UpdateReservation(reservation *UpdateReservationPayload) (string, error)
+	DeleteReservation(id int) (string, error)
 }
 
 type Reservation struct {

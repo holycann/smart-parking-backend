@@ -11,34 +11,25 @@ import (
 	utils "github.com/holycann/smart-parking-backend/pkg"
 )
 
-type Handler struct {
-	store SpotStore
+type SpotHandler struct {
+	service SpotServiceInterface
 }
 
-func NewHandler(store SpotStore) *Handler {
-	return &Handler{store: store}
+func NewHandler(service SpotServiceInterface) *SpotHandler {
+	return &SpotHandler{service: service}
 }
 
-func (h *Handler) SpotRoutes(router *mux.Router) {
-	router.HandleFunc("/spot", h.HandleGet).Methods("GET")
-	router.HandleFunc("/spot/{id}", h.HandleGetByID).Methods("GET")
-	router.HandleFunc("/spot", h.HandleCreate).Methods("POST")
-	router.HandleFunc("/spot/{id}", h.HandleUpdate).Methods("PUT")
-	router.HandleFunc("/spot/{id}", h.HandleDelete).Methods("DELETE")
-}
-
-func (h *Handler) HandleGet(w http.ResponseWriter, r *http.Request) {
-	spots, err := h.store.GetAllSpot()
+func (h *SpotHandler) HandleGetAllSpot(w http.ResponseWriter, r *http.Request) {
+	spots, err := h.service.GetAllSpot()
 	if err != nil {
-		fmt.Printf("error getting all spot: %v\n", err)
-		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("Failed to retrieve spots"))
+		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	utils.WriteJSON(w, http.StatusOK, spots)
 }
 
-func (h *Handler) HandleGetByID(w http.ResponseWriter, r *http.Request) {
+func (h *SpotHandler) HandleGetSpotByID(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil || id <= 0 {
@@ -46,17 +37,16 @@ func (h *Handler) HandleGetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	spot, err := h.store.GetSpotByID(id)
-	if err != nil || id <= 0 {
-		fmt.Printf("error getting spot by id: %v\n", err)
-		utils.WriteError(w, http.StatusNotFound, fmt.Errorf("Spot with ID %d not found", id))
+	spot, err := h.service.GetSpotByID(id)
+	if err != nil {
+		utils.WriteError(w, http.StatusNotFound, err)
 		return
 	}
 
 	utils.WriteJSON(w, http.StatusOK, spot)
 }
 
-func (h *Handler) HandleCreate(w http.ResponseWriter, r *http.Request) {
+func (h *SpotHandler) HandleCreateSpot(w http.ResponseWriter, r *http.Request) {
 	var payload CreateSpotPayload
 	if err := utils.ParseJSON(r, &payload); err != nil {
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("error parsing json: %v\n", err))
@@ -68,27 +58,16 @@ func (h *Handler) HandleCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := h.store.GetSpotByNumber(payload.SpotNumber)
-	if err == nil {
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("Spot Number %s already exists", payload.SpotNumber))
-		return
-	}
-
-	err = h.store.CreateSpot(&CreateSpotPayload{
-		ZoneID:     payload.ZoneID,
-		SpotNumber: payload.SpotNumber,
-		Status:     payload.Status,
-	})
+	message, err := h.service.CreateSpot(&payload)
 	if err != nil {
-		fmt.Printf("error create spot: %v\n", err)
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusCreated, fmt.Sprintf("Create spot %s successfully", payload.SpotNumber))
+	utils.WriteJSON(w, http.StatusCreated, message)
 }
 
-func (h *Handler) HandleUpdate(w http.ResponseWriter, r *http.Request) {
+func (h *SpotHandler) HandleUpdateSpot(w http.ResponseWriter, r *http.Request) {
 	var payload UpdateSpotPayload
 	if err := utils.ParseJSON(r, &payload); err != nil {
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("error parsing json: %v", err))
@@ -110,39 +89,17 @@ func (h *Handler) HandleUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	v, err := h.store.GetSpotByID(payload.ID)
-	if err != nil {
-		fmt.Printf("error get spot by id: %v\n", err)
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("spot id %d not found"))
-		return
-	}
-
-	if v == nil {
-		utils.WriteError(w, http.StatusNotFound, fmt.Errorf("Spot with ID %d does not exist", payload.ID))
-		return
-	}
-
-	if payload.ZoneID == 0 && payload.SpotNumber == "" {
-		utils.WriteError(w, http.StatusNotFound, fmt.Errorf("Spot Zone And Number Cannot Be Empty!"))
-		return
-	}
-
-	err = h.store.UpdateSpot(&UpdateSpotPayload{
-		ID:         payload.ID,
-		ZoneID:     payload.ZoneID,
-		SpotNumber: payload.SpotNumber,
-		Status:     payload.Status,
-	})
+	message, err := h.service.UpdateSpot(&payload)
 	if err != nil {
 		fmt.Printf("error update spot: %v\n", err)
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusOK, fmt.Sprintf("Update spot %s successfully", v.SpotNumber))
+	utils.WriteJSON(w, http.StatusOK, message)
 }
 
-func (h *Handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
+func (h *SpotHandler) HandleDeleteSpot(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
@@ -151,12 +108,11 @@ func (h *Handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.store.DeleteSpot(id)
+	message, err := h.service.DeleteSpot(id)
 	if err != nil {
-		fmt.Printf("error delete spot: %v\n", err)
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusOK, fmt.Sprintf("Delete spot successfully"))
+	utils.WriteJSON(w, http.StatusOK, message)
 }

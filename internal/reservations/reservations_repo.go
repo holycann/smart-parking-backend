@@ -6,12 +6,12 @@ import (
 	"time"
 )
 
-type Store struct {
+type ReservationRepository struct {
 	db *sql.DB
 }
 
-func NewStore(db *sql.DB) *Store {
-	return &Store{
+func NewRepository(db *sql.DB) *ReservationRepository {
+	return &ReservationRepository{
 		db: db,
 	}
 }
@@ -37,7 +37,7 @@ func scanRowIntoReservation(row *sql.Rows) (*Reservation, error) {
 	return reservation, nil
 }
 
-func (s *Store) GetAllReservation() (reservation []*Reservation, err error) {
+func (s *ReservationRepository) GetAllReservation() (reservation []*Reservation, err error) {
 	rows, err := s.db.Query("SELECT * FROM reservations")
 	if err != nil {
 		return nil, err
@@ -54,7 +54,7 @@ func (s *Store) GetAllReservation() (reservation []*Reservation, err error) {
 	return reservation, nil
 }
 
-func (s *Store) GetReservationByStartTime(StartTime int64) (*Reservation, error) {
+func (s *ReservationRepository) GetReservationByStartTime(StartTime int64) (*Reservation, error) {
 	rows, err := s.db.Query("SELECT * FROM reservations WHERE start_time = $1", StartTime)
 	if err != nil {
 		return nil, err
@@ -75,7 +75,7 @@ func (s *Store) GetReservationByStartTime(StartTime int64) (*Reservation, error)
 	return r, nil
 }
 
-func (s *Store) GetReservationByID(id int) (*Reservation, error) {
+func (s *ReservationRepository) GetReservationByID(id int) (*Reservation, error) {
 	rows, err := s.db.Query("SELECT * FROM reservations WHERE id = $1", id)
 	if err != nil {
 		return nil, err
@@ -96,7 +96,7 @@ func (s *Store) GetReservationByID(id int) (*Reservation, error) {
 	return r, nil
 }
 
-func (s *Store) CreateReservation(reservation *CreateReservationPayload) error {
+func (s *ReservationRepository) CreateReservation(reservation *CreateReservationPayload) error {
 	_, err := s.db.Exec("INSERT INTO reservations (user_id, spot_id, vehicle_id, start_time, end_time, status) VALUES ($1, $2, $3, $4, $5, $6)", reservation.UserID, reservation.SpotID, reservation.VehicleID, reservation.StartTime, reservation.EndTime, reservation.Status)
 	if err != nil {
 		return err
@@ -105,7 +105,7 @@ func (s *Store) CreateReservation(reservation *CreateReservationPayload) error {
 	return nil
 }
 
-func (s *Store) UpdateReservation(reservation *UpdateReservationPayload) error {
+func (s *ReservationRepository) UpdateReservation(reservation *UpdateReservationPayload) error {
 	_, err := s.db.Exec("UPDATE reservations SET user_id = $1, spot_id = $2, vehicle_id = $3, start_time = $4, end_time = $5, status = $6 WHERE id = $7", reservation.UserID, reservation.SpotID, reservation.VehicleID, reservation.StartTime, reservation.EndTime, reservation.Status, reservation.ID)
 	if err != nil {
 		return err
@@ -114,7 +114,7 @@ func (s *Store) UpdateReservation(reservation *UpdateReservationPayload) error {
 	return nil
 }
 
-func (s *Store) DeleteReservation(id int) error {
+func (s *ReservationRepository) DeleteReservation(id int) error {
 	_, err := s.db.Exec("DELETE FROM reservations WHERE id = $1", id)
 	if err != nil {
 		return err

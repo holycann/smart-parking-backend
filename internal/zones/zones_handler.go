@@ -11,34 +11,25 @@ import (
 	utils "github.com/holycann/smart-parking-backend/pkg"
 )
 
-type Handler struct {
-	store ZoneStore
+type ZoneHandler struct {
+	service ZoneServiceInterface
 }
 
-func NewHandler(store ZoneStore) *Handler {
-	return &Handler{store: store}
+func NewHandler(service ZoneServiceInterface) *ZoneHandler {
+	return &ZoneHandler{service: service}
 }
 
-func (h *Handler) ZoneRoutes(router *mux.Router) {
-	router.HandleFunc("/zone", h.HandleGet).Methods("GET")
-	router.HandleFunc("/zone/{id}", h.HandleGetByID).Methods("GET")
-	router.HandleFunc("/zone", h.HandleCreate).Methods("POST")
-	router.HandleFunc("/zone/{id}", h.HandleUpdate).Methods("PUT")
-	router.HandleFunc("/zone/{id}", h.HandleDelete).Methods("DELETE")
-}
-
-func (h *Handler) HandleGet(w http.ResponseWriter, r *http.Request) {
-	zones, err := h.store.GetAllZone()
+func (h *ZoneHandler) HandleGetAllZone(w http.ResponseWriter, r *http.Request) {
+	zones, err := h.service.GetAllZone()
 	if err != nil {
-		fmt.Printf("error getting all zone: %v\n", err)
-		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("Failed to retrieve zones"))
+		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	utils.WriteJSON(w, http.StatusOK, zones)
 }
 
-func (h *Handler) HandleGetByID(w http.ResponseWriter, r *http.Request) {
+func (h *ZoneHandler) HandleGetZoneByID(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil || id <= 0 {
@@ -46,17 +37,16 @@ func (h *Handler) HandleGetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	zone, err := h.store.GetZoneByID(id)
-	if err != nil || id <= 0 {
-		fmt.Printf("error getting zone by id: %v\n", err)
-		utils.WriteError(w, http.StatusNotFound, fmt.Errorf("ZOne with ID %d not found", id))
+	zone, err := h.service.GetZoneByID(id)
+	if err != nil {
+		utils.WriteError(w, http.StatusNotFound, err)
 		return
 	}
 
 	utils.WriteJSON(w, http.StatusOK, zone)
 }
 
-func (h *Handler) HandleCreate(w http.ResponseWriter, r *http.Request) {
+func (h *ZoneHandler) HandleCreateZone(w http.ResponseWriter, r *http.Request) {
 	var payload CreateZonePayload
 	if err := utils.ParseJSON(r, &payload); err != nil {
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("error parsing json: %v\n", err))
@@ -68,27 +58,16 @@ func (h *Handler) HandleCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := h.store.GetZoneByName(payload.Name)
-	if err == nil {
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("Zone Name %s already exists", payload.Name))
-		return
-	}
-
-	err = h.store.CreateZone(&CreateZonePayload{
-		Name:       payload.Name,
-		Location:   payload.Location,
-		TotalSpots: payload.TotalSpots,
-	})
+	message, err := h.service.CreateZone(&payload)
 	if err != nil {
-		fmt.Printf("error create user: %v\n", err)
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusCreated, fmt.Sprintf("Create zone %s successfully", payload.Name))
+	utils.WriteJSON(w, http.StatusCreated, message)
 }
 
-func (h *Handler) HandleUpdate(w http.ResponseWriter, r *http.Request) {
+func (h *ZoneHandler) HandleUpdateZone(w http.ResponseWriter, r *http.Request) {
 	var payload UpdateZonePayload
 	if err := utils.ParseJSON(r, &payload); err != nil {
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("error parsing json: %v", err))
@@ -110,39 +89,16 @@ func (h *Handler) HandleUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	z, err := h.store.GetZoneByID(payload.ID)
+	message, err := h.service.UpdateZone(&payload)
 	if err != nil {
-		fmt.Printf("error get zone by id: %v\n", err)
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("zone id %d not found"))
-		return
-	}
-
-	if z == nil {
-		utils.WriteError(w, http.StatusNotFound, fmt.Errorf("Zone with ID %d does not exist", payload.ID))
-		return
-	}
-
-	if payload.Name == "" && payload.Location == "" {
-		utils.WriteError(w, http.StatusNotFound, fmt.Errorf("Zone Name And Location Cannot Be Empty!"))
-		return
-	}
-
-	err = h.store.UpdateZone(&UpdateZonePayload{
-		ID:         payload.ID,
-		Name:       payload.Name,
-		Location:   payload.Location,
-		TotalSpots: payload.TotalSpots,
-	})
-	if err != nil {
-		fmt.Printf("error update zone: %v\n", err)
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusOK, fmt.Sprintf("Update zone %s successfully", z.Name))
+	utils.WriteJSON(w, http.StatusOK, message)
 }
 
-func (h *Handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
+func (h *ZoneHandler) HandleDeleteZone(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
@@ -151,12 +107,11 @@ func (h *Handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.store.DeleteZone(id)
+	message, err := h.service.DeleteZone(id)
 	if err != nil {
-		fmt.Printf("error delete zone: %v\n", err)
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusOK, fmt.Sprintf("Delete zone successfully"))
+	utils.WriteJSON(w, http.StatusOK, message)
 }
