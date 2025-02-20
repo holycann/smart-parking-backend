@@ -1,6 +1,10 @@
 package payment_methods
 
-import "github.com/gorilla/mux"
+import (
+	"github.com/gorilla/mux"
+
+	"github.com/holycann/smart-parking-backend/internal/middleware"
+)
 
 type PaymentMethodRoutes struct {
 	router  *mux.Router
@@ -15,9 +19,13 @@ func NewRoutes(router *mux.Router, handler *PaymentMethodHandler) *PaymentMethod
 }
 
 func (r *PaymentMethodRoutes) RegisterRoutes() {
-	r.router.HandleFunc("/payment_method", r.handler.HandleGetAllPaymentMethod).Methods("GET")
-	r.router.HandleFunc("/payment_method/{id:[0-9]+}", r.handler.HandleGetPaymentMethodByID).Methods("GET")
-	r.router.HandleFunc("/payment_method", r.handler.HandleCreatePaymentMethod).Methods("POST")
-	r.router.HandleFunc("/payment_method/{id:[0-9]+}", r.handler.HandleUpdatePaymentMethod).Methods("PUT")
-	r.router.HandleFunc("/payment_method/{id:[0-9]+}", r.handler.HandleDeletePaymentMethod).Methods("DELETE")
+	router := r.router.PathPrefix("/payment_method").Subrouter()
+
+	router.Use(middleware.JWTMiddleware)
+
+	router.HandleFunc("", r.handler.HandleGetAllPaymentMethod).Methods("GET")
+	router.HandleFunc("/{id:[0-9]+}", r.handler.HandleGetPaymentMethodByID).Methods("GET")
+	router.HandleFunc("", r.handler.HandleCreatePaymentMethod).Methods("POST")
+	router.HandleFunc("/{id:[0-9]+}", r.handler.HandleUpdatePaymentMethod).Methods("PUT")
+	router.HandleFunc("/{id:[0-9]+}", r.handler.HandleDeletePaymentMethod).Methods("DELETE")
 }

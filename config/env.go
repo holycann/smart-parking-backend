@@ -53,7 +53,7 @@ func initConfigStaging() Config {
 		MaxIdleConns:          getEnvAsInt("DB_MAX_IDLE_CONNS", 30),
 		MaxIdleTime:           getEnvAsInt("DB_MAX_IDLE_TIME", 5),
 		JWTExpirationInSecond: getEnvAsInt("JWT_EXP", 3600*24),
-		JWTSecret:             getEnv("JWT_SECRET", "TEST_SECRET"),
+		JWTSecret:             getEnv("JWT_SECRET", "HOLY_SMART_PARKING"),
 	}
 }
 

@@ -1,6 +1,10 @@
 package users
 
-import "github.com/gorilla/mux"
+import (
+	"github.com/gorilla/mux"
+
+	"github.com/holycann/smart-parking-backend/internal/middleware"
+)
 
 type UserRoutes struct {
 	router  *mux.Router
@@ -15,9 +19,13 @@ func NewRoutes(router *mux.Router, handler *UserHandler) *UserRoutes {
 }
 
 func (r *UserRoutes) RegisterRoutes() {
-	r.router.HandleFunc("/user", r.handler.HandleGetAllUsers).Methods("GET")
-	r.router.HandleFunc("/user/{id:[0-9]+}", r.handler.HandleGetUserByID).Methods("GET")
-	r.router.HandleFunc("/user", r.handler.HandleCreateUser).Methods("POST")
-	r.router.HandleFunc("/user/{id:[0-9]+}", r.handler.HandleUpdateUser).Methods("PUT")
-	r.router.HandleFunc("/user/{id:[0-9]+}", r.handler.HandleDeleteUser).Methods("DELETE")
+	router := r.router.PathPrefix("/user").Subrouter()
+
+	router.Use(middleware.JWTMiddleware)
+
+	router.HandleFunc("", r.handler.HandleGetAllUsers).Methods("GET")
+	router.HandleFunc("/{id:[0-9]+}", r.handler.HandleGetUserByID).Methods("GET")
+	router.HandleFunc("", r.handler.HandleCreateUser).Methods("POST")
+	router.HandleFunc("/{id:[0-9]+}", r.handler.HandleUpdateUser).Methods("PUT")
+	router.HandleFunc("/{id:[0-9]+}", r.handler.HandleDeleteUser).Methods("DELETE")
 }

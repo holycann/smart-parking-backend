@@ -1,6 +1,10 @@
 package spots
 
-import "github.com/gorilla/mux"
+import (
+	"github.com/gorilla/mux"
+
+	"github.com/holycann/smart-parking-backend/internal/middleware"
+)
 
 type SpotRoutes struct {
 	router  *mux.Router
@@ -15,9 +19,13 @@ func NewRoutes(router *mux.Router, handler *SpotHandler) *SpotRoutes {
 }
 
 func (r *SpotRoutes) RegisterRoutes() {
-	r.router.HandleFunc("/spot", r.handler.HandleGetAllSpot).Methods("GET")
-	r.router.HandleFunc("/spot/{id:[0-9]+}", r.handler.HandleGetSpotByID).Methods("GET")
-	r.router.HandleFunc("/spot", r.handler.HandleCreateSpot).Methods("POST")
-	r.router.HandleFunc("/spot/{id:[0-9]+}", r.handler.HandleUpdateSpot).Methods("PUT")
-	r.router.HandleFunc("/spot/{id:[0-9]+}", r.handler.HandleDeleteSpot).Methods("DELETE")
+	router := r.router.PathPrefix("/spot").Subrouter()
+
+	router.Use(middleware.JWTMiddleware)
+
+	router.HandleFunc("", r.handler.HandleGetAllSpot).Methods("GET")
+	router.HandleFunc("/{id:[0-9]+}", r.handler.HandleGetSpotByID).Methods("GET")
+	router.HandleFunc("", r.handler.HandleCreateSpot).Methods("POST")
+	router.HandleFunc("/{id:[0-9]+}", r.handler.HandleUpdateSpot).Methods("PUT")
+	router.HandleFunc("/{id:[0-9]+}", r.handler.HandleDeleteSpot).Methods("DELETE")
 }

@@ -1,6 +1,10 @@
 package vehicles
 
-import "github.com/gorilla/mux"
+import (
+	"github.com/gorilla/mux"
+
+	"github.com/holycann/smart-parking-backend/internal/middleware"
+)
 
 type VehicleRoutes struct {
 	router  *mux.Router
@@ -15,9 +19,13 @@ func NewRoutes(router *mux.Router, handler *VehicleHandler) *VehicleRoutes {
 }
 
 func (r *VehicleRoutes) RegisterRoutes() {
-	r.router.HandleFunc("/vehicle", r.handler.HandleGetAllVehicle).Methods("GET")
-	r.router.HandleFunc("/vehicle/{id:[0-9]+}", r.handler.HandleGetVehicleByID).Methods("GET")
-	r.router.HandleFunc("/vehicle", r.handler.HandleCreateVehicle).Methods("POST")
-	r.router.HandleFunc("/vehicle/{id:[0-9]+}", r.handler.HandleUpdateVehicle).Methods("PUT")
-	r.router.HandleFunc("/vehicle/{id:[0-9]+}", r.handler.HandleDeleteVehicle).Methods("DELETE")
+	router := r.router.PathPrefix("/vehicle").Subrouter()
+
+	router.Use(middleware.JWTMiddleware)
+
+	router.HandleFunc("", r.handler.HandleGetAllVehicle).Methods("GET")
+	router.HandleFunc("/{id:[0-9]+}", r.handler.HandleGetVehicleByID).Methods("GET")
+	router.HandleFunc("", r.handler.HandleCreateVehicle).Methods("POST")
+	router.HandleFunc("/{id:[0-9]+}", r.handler.HandleUpdateVehicle).Methods("PUT")
+	router.HandleFunc("/{id:[0-9]+}", r.handler.HandleDeleteVehicle).Methods("DELETE")
 }

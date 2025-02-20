@@ -14,8 +14,8 @@ type UserRepositoryInterface interface {
 type UserServiceInterface interface {
 	GetAllUserData() ([]*User, error)
 	GetUserByID(id int) (*User, error)
-	CreateUser(payload *CreateUserPayload) (string, error)
-	UpdateUser(payload *UpdateUserPayload) (string, error)
+	CreateUser(user *CreateUserPayload) (string, error)
+	UpdateUser(user *UpdateUserPayload) (string, error)
 	DeleteUser(id int) (string, error)
 }
 

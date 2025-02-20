@@ -23,6 +23,7 @@ func scanRowIntoUser(row *sql.Rows) (*User, error) {
 		&user.Fullname,
 		&user.Email,
 		&user.PhoneNumber,
+		&user.Password,
 		&user.ImageURL,
 		&user.CreatedAt,
 		&user.UpdatedAt,
@@ -94,7 +95,7 @@ func (s *UserRepository) GetUserByID(id int) (*User, error) {
 }
 
 func (s *UserRepository) CreateUser(user *CreateUserPayload) error {
-	_, err := s.db.Exec("INSERT INTO users (fullname, email, phone_number, image_url) VALUES ($1, $2, $3, $4)", user.Fullname, user.Email, user.PhoneNumber, user.ImageURL)
+	_, err := s.db.Exec("INSERT INTO users (fullname, email, phone_number, password, image_url) VALUES ($1, $2, $3, $4, $5)", user.Fullname, user.Email, user.PhoneNumber, user.Password, user.ImageURL)
 	if err != nil {
 		return err
 	}
@@ -103,7 +104,8 @@ func (s *UserRepository) CreateUser(user *CreateUserPayload) error {
 }
 
 func (s *UserRepository) UpdateUser(user *UpdateUserPayload) error {
-	_, err := s.db.Exec("UPDATE users SET fullname = $1, email = $2, phone_number = $3, image_url = $4 WHERE id = $5", user.Fullname, user.Email, user.PhoneNumber, user.ImageURL, user.ID)
+	fmt.Println(user)
+	_, err := s.db.Exec("UPDATE users SET fullname = $1, email = $2, phone_number = $3,  password = $4, image_url = $5 WHERE id = $6", user.Fullname, user.Email, user.PhoneNumber, user.Password, user.ImageURL, user.ID)
 	if err != nil {
 		return err
 	}

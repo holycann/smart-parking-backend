@@ -1,6 +1,10 @@
 package reservations
 
-import "github.com/gorilla/mux"
+import (
+	"github.com/gorilla/mux"
+
+	"github.com/holycann/smart-parking-backend/internal/middleware"
+)
 
 type ReservationRoutes struct {
 	router  *mux.Router
@@ -15,9 +19,13 @@ func NewRoutes(router *mux.Router, handler *ReservationHandler) *ReservationRout
 }
 
 func (r *ReservationRoutes) RegisterRoutes() {
-	r.router.HandleFunc("/reservation", r.handler.HandleGetAllReservation).Methods("GET")
-	r.router.HandleFunc("/reservation/{id:[0-9]+}", r.handler.HandleGetReservationByID).Methods("GET")
-	r.router.HandleFunc("/reservation", r.handler.HandleCreateReservation).Methods("POST")
-	r.router.HandleFunc("/reservation/{id:[0-9]+}", r.handler.HandleUpdateReservation).Methods("PUT")
-	r.router.HandleFunc("/reservation/{id:[0-9]+}", r.handler.HandleDeleteReservation).Methods("DELETE")
+	router := r.router.PathPrefix("/reservation").Subrouter()
+
+	router.Use(middleware.JWTMiddleware)
+
+	router.HandleFunc("", r.handler.HandleGetAllReservation).Methods("GET")
+	router.HandleFunc("/{id:[0-9]+}", r.handler.HandleGetReservationByID).Methods("GET")
+	router.HandleFunc("", r.handler.HandleCreateReservation).Methods("POST")
+	router.HandleFunc("/{id:[0-9]+}", r.handler.HandleUpdateReservation).Methods("PUT")
+	router.HandleFunc("/{id:[0-9]+}", r.handler.HandleDeleteReservation).Methods("DELETE")
 }

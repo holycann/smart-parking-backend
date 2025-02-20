@@ -2,13 +2,8 @@ package users
 
 import (
 	"fmt"
-	"net/http"
 
-	"github.com/go-playground/validator/v10"
-
-	"github.com/holycann/smart-parking-backend/config"
 	"github.com/holycann/smart-parking-backend/internal/middleware"
-	utils "github.com/holycann/smart-parking-backend/pkg"
 )
 
 type UserService struct {
@@ -38,7 +33,7 @@ func (s *UserService) CreateUser(payload *CreateUserPayload) (string, error) {
 		return "", fmt.Errorf("Email %s already exists", payload.Email)
 	}
 
-	hash, err := middleware.HashPassword(payload.Password)
+	hashedPassword, err := middleware.HashPassword(payload.Password)
 	if err != nil {
 		return "", fmt.Errorf("Failed To Hash Password: %v", err)
 	}
@@ -47,7 +42,7 @@ func (s *UserService) CreateUser(payload *CreateUserPayload) (string, error) {
 		Fullname:    payload.Fullname,
 		Email:       payload.Email,
 		PhoneNumber: payload.PhoneNumber,
-		Password:    hash,
+		Password:    hashedPassword,
 		ImageURL:    payload.ImageURL,
 	})
 	if err != nil {
@@ -96,43 +91,4 @@ func (s *UserService) DeleteUser(id int) (string, error) {
 	}
 
 	return fmt.Sprintf("Delete user successfully"), nil
-}
-
-func (s *UserService) Login(w http.ResponseWriter, r *http.Request) {
-	var payload LoginUserPayload
-	if err := utils.ParseJSON(r, &payload); err != nil {
-		fmt.Printf("error parsing json: %v\n", err)
-		utils.WriteError(w, http.StatusBadRequest, err)
-	}
-
-	if err := utils.Validate.Struct(payload); err != nil {
-		fmt.Printf("error validating payload: %v\n", err)
-		errors := err.(validator.ValidationErrors)
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("Invalid Payload %v", errors))
-		return
-	}
-
-	u, err := s.repository.GetUserByEmail(payload.Email)
-	if err != nil {
-		fmt.Printf("error get user by email: %v\n", err)
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("Username Or Password Invalid"))
-		return
-	}
-
-	if !middleware.ComparePassword(u.Password, []byte(payload.Password)) {
-		fmt.Printf("error compare password: %v\n", err)
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("Username Or Password Invalid"))
-		return
-	}
-
-	token, err := middleware.CreateJWT([]byte(config.Env.JWTSecret), u.ID)
-	if err != nil {
-		fmt.Printf("error create jwt: %v\n", err)
-		utils.WriteError(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	utils.WriteJSON(w, http.StatusOK, map[string]string{
-		"token": token,
-	})
 }

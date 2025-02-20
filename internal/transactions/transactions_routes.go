@@ -1,6 +1,10 @@
 package transactions
 
-import "github.com/gorilla/mux"
+import (
+	"github.com/gorilla/mux"
+
+	"github.com/holycann/smart-parking-backend/internal/middleware"
+)
 
 type TransactionRoutes struct {
 	router  *mux.Router
@@ -15,9 +19,13 @@ func NewRoutes(router *mux.Router, handler *TransactionHandler) *TransactionRout
 }
 
 func (r *TransactionRoutes) RegisterRoutes() {
-	r.router.HandleFunc("/transaction", r.handler.HandleGetAllTransaction).Methods("GET")
-	r.router.HandleFunc("/transaction/{id:[0-9]+}", r.handler.HandleGetTransactionByID).Methods("GET")
-	r.router.HandleFunc("/transaction", r.handler.HandleCreateTransaction).Methods("POST")
-	r.router.HandleFunc("/transaction/{id:[0-9]+}", r.handler.HandleUpdateTransaction).Methods("PUT")
-	r.router.HandleFunc("/transaction/{id:[0-9]+}", r.handler.HandleDeleteTransaction).Methods("DELETE")
+	router := r.router.PathPrefix("/transaction").Subrouter()
+
+	router.Use(middleware.JWTMiddleware)
+
+	router.HandleFunc("", r.handler.HandleGetAllTransaction).Methods("GET")
+	router.HandleFunc("/{id:[0-9]+}", r.handler.HandleGetTransactionByID).Methods("GET")
+	router.HandleFunc("", r.handler.HandleCreateTransaction).Methods("POST")
+	router.HandleFunc("/{id:[0-9]+}", r.handler.HandleUpdateTransaction).Methods("PUT")
+	router.HandleFunc("/{id:[0-9]+}", r.handler.HandleDeleteTransaction).Methods("DELETE")
 }

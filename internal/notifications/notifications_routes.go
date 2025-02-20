@@ -1,6 +1,10 @@
 package notifications
 
-import "github.com/gorilla/mux"
+import (
+	"github.com/gorilla/mux"
+
+	"github.com/holycann/smart-parking-backend/internal/middleware"
+)
 
 type NotificationRoutes struct {
 	router  *mux.Router
@@ -15,9 +19,13 @@ func NewRoutes(router *mux.Router, handler *NotificationHandler) *NotificationRo
 }
 
 func (r *NotificationRoutes) RegisterRoutes() {
-	r.router.HandleFunc("/notification", r.handler.HandleGetAllNotifications).Methods("GET")
-	r.router.HandleFunc("/notification/{id:[0-9]+}", r.handler.HandleGetAllNotifications).Methods("GET")
-	r.router.HandleFunc("/notification", r.handler.HandleCreateNotification).Methods("POST")
-	r.router.HandleFunc("/notification/{id:[0-9]+}", r.handler.HandleUpdateNotification).Methods("PUT")
-	r.router.HandleFunc("/notification/{id:[0-9]+}", r.handler.HandleDeleteNotification).Methods("DELETE")
+	router := r.router.PathPrefix("/notification").Subrouter()
+
+	router.Use(middleware.JWTMiddleware)
+
+	router.HandleFunc("", r.handler.HandleGetAllNotifications).Methods("GET")
+	router.HandleFunc("/{id:[0-9]+}", r.handler.HandleGetByID).Methods("GET")
+	router.HandleFunc("", r.handler.HandleCreateNotification).Methods("POST")
+	router.HandleFunc("/{id:[0-9]+}", r.handler.HandleUpdateNotification).Methods("PUT")
+	router.HandleFunc("/{id:[0-9]+}", r.handler.HandleDeleteNotification).Methods("DELETE")
 }
